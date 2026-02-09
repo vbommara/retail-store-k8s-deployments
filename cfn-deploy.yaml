@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Catalog service deployment tracker for DevOps Agent
+
+Parameters:
+  DeploymentVersion:
+    Type: String
+    Description: Git commit SHA or version
+  DeploymentTimestamp:
+    Type: String
+    Description: Deployment timestamp
+
+Resources:
+  DeploymentRecord:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      GitCommit: !Ref DeploymentVersion
+      DeployedAt: !Ref DeploymentTimestamp
+      Service: catalog
+      Cluster: retail-store
+
+Outputs:
+  DeploymentVersion:
+    Value: !Ref DeploymentVersion
+  DeploymentTimestamp:
+    Value: !Ref DeploymentTimestamp

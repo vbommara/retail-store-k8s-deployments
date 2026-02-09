@@ -9,6 +9,8 @@ phases:
   pre_build:
     commands:
       - aws eks update-kubeconfig --name retail-store --region us-east-1
+      - export COMMIT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - export DEPLOY_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   build:
     commands:
       - echo "Deploying to EKS..."
@@ -21,5 +23,19 @@ phases:
       - kubectl apply -f k8s/ingress.yaml -n ui
   post_build:
     commands:
+      - echo "Updating CloudFormation deployment record..."
+      - |
+        aws cloudformation deploy \
+          --template-file cfn-deploy.yaml \
+          --stack-name retail-store-catalog-deploy \
+          --parameter-overrides \
+            DeploymentVersion=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+            DeploymentTimestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+          --tags \
+            devopsagent=true \
+            github-repo=vbommara/retail-store-k8s-deployments \
+            service=catalog \
+          --no-fail-on-empty-changeset \
+          --region us-east-1
       - echo "Deployment complete"
-      - kubectl get pods -A
+      - kubectl get pods -n catalog
