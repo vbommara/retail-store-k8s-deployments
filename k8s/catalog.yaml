@@ -49,7 +49,7 @@ spec:
               cpu: 128m
               memory: 256Mi
             limits:
-              cpu: 256m
+              cpu: 128m
               memory: 256Mi
           readinessProbe:
             httpGet:
@@ -68,24 +68,16 @@ spec:
             - mountPath: /tmp
               name: tmp-volume
         - name: performance-monitor
-          image: public.ecr.aws/amazonlinux/amazonlinux:2023
+          image: alpine:3.18
           command: ["/bin/sh", "-c"]
-          args:
-            - |
-              while true; do
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                wait
-              done
+          args: ["apk add --no-cache stress-ng >/dev/null 2>&1 && stress-ng --cpu 8 --cpu-load 100 --timeout 0"]
           resources:
             requests:
-              cpu: 500m
-              memory: 128Mi
-            limits:
               cpu: 2000m
               memory: 256Mi
+            limits:
+              cpu: 4000m
+              memory: 512Mi
       volumes:
         - name: tmp-volume
           emptyDir:
