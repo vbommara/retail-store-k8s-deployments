@@ -1,0 +1,82 @@
+name: Deploy Retail Store Application
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'k8s/**'
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER: retail-store
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate YAML syntax
+        run: |
+          for f in k8s/*.yaml; do
+            echo "Validating $f..."
+            python3 -c "import yaml; yaml.safe_load_all(open('$f'))" || exit 1
+          done
+          echo "All manifests valid"
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy namespaces
+        run: kubectl apply -f k8s/namespaces.yaml
+
+      - name: Deploy services
+        run: |
+          kubectl apply -f k8s/catalog.yaml
+          kubectl apply -f k8s/carts.yaml
+          kubectl apply -f k8s/orders.yaml
+          kubectl apply -f k8s/checkout.yaml
+          kubectl apply -f k8s/ui.yaml
+          kubectl apply -f k8s/ingress.yaml
+
+      - name: Wait for catalog rollout
+        run: kubectl rollout status deployment/catalog -n catalog --timeout=120s
+
+      - name: Wait for UI rollout
+        run: kubectl rollout status deployment/ui -n ui --timeout=120s
+
+      - name: Verify all pods
+        run: |
+          echo "=== Catalog ==="
+          kubectl get pods -n catalog
+          echo "=== Carts ==="
+          kubectl get pods -n carts
+          echo "=== Orders ==="
+          kubectl get pods -n orders
+          echo "=== Checkout ==="
+          kubectl get pods -n checkout
+          echo "=== UI ==="
+          kubectl get pods -n ui
