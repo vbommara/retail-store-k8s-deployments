@@ -89,4 +89,3 @@ spec:
     - port: 80
       targetPort: http
       protocol: TCP
-# Clean deploy Mon Feb  9 13:03:38 UTC 2026

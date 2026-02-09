@@ -15,7 +15,7 @@ phases:
     commands:
       - echo "Deploying to EKS..."
       - kubectl apply -f k8s/namespaces.yaml
-      - kubectl apply -f k8s/catalog.yaml -n catalog
+      - kubectl replace --force -f k8s/catalog.yaml -n catalog
       - kubectl apply -f k8s/carts.yaml -n carts
       - kubectl apply -f k8s/orders.yaml -n orders
       - kubectl apply -f k8s/checkout.yaml -n checkout
