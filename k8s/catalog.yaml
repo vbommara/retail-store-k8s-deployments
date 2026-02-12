@@ -67,25 +67,6 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: tmp-volume
-        - name: performance-monitor
-          image: public.ecr.aws/amazonlinux/amazonlinux:2023
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              while true; do
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                wait
-              done
-          resources:
-            requests:
-              cpu: 500m
-              memory: 128Mi
-            limits:
-              cpu: 2000m
-              memory: 256Mi
       volumes:
         - name: tmp-volume
           emptyDir:
@@ -108,4 +89,3 @@ spec:
     - port: 80
       targetPort: http
       protocol: TCP
-# trigger 1770643825
