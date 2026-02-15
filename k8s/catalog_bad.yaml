@@ -46,10 +46,10 @@ spec:
                 name: catalog-db
           resources:
             requests:
-              cpu: 50m
+              cpu: 128m
               memory: 256Mi
             limits:
-              cpu: 50m
+              cpu: 128m
               memory: 256Mi
           readinessProbe:
             httpGet:
@@ -67,25 +67,31 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: tmp-volume
-        - name: performance-monitor
-          image: public.ecr.aws/amazonlinux/amazonlinux:2023
+        - name: latency-injector
+          image: alpine:3.18
           command: ["/bin/sh", "-c"]
           args:
             - |
+              apk add --no-cache iproute2 stress-ng >/dev/null 2>&1 || true
+              tc qdisc add dev eth0 root netem delay 400ms 100ms distribution normal 2>/dev/null || \
+              tc qdisc change dev eth0 root netem delay 400ms 100ms distribution normal
+              echo "Latency injection active: 300-500ms on outbound traffic"
+              echo "Starting EXTREME CPU stress workers..."
+              stress-ng --cpu 8 --cpu-load 100 --cpu-method all --aggressive --timeout 0 &
               while true; do
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                dd if=/dev/zero of=/dev/null bs=1M count=1000 &
-                wait
+                echo "$(date): Latency + CPU stress running"
+                sleep 30
               done
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
           resources:
             requests:
-              cpu: 500m
-              memory: 128Mi
-            limits:
               cpu: 2000m
               memory: 256Mi
+            limits:
+              cpu: 4000m
+              memory: 512Mi
       volumes:
         - name: tmp-volume
           emptyDir:
