@@ -46,10 +46,10 @@ spec:
                 name: catalog-db
           resources:
             requests:
-              cpu: 128m
+              cpu: 15m
               memory: 256Mi
             limits:
-              cpu: 256m
+              cpu: 15m
               memory: 256Mi
           readinessProbe:
             httpGet:
